@@ -22,12 +22,15 @@ jobs:
 
       - name: Compile with NDK
         run: |
-          $ANDROID_NDK_HOME/ndk-build NDK_PROJECT_PATH=.
+          $ANDROID_NDK_HOME/ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=jni/Application.mk APP_BUILD_SCRIPT=jni/Android.mk
 
       - name: Verify Generated Files
         run: |
-          echo "=== Checking generated libs directory ==="
-          ls -la libs/arm64-v8a/ || echo "Directory libs/arm64-v8a not found!"
+          if [ ! -f libs/arm64-v8a/libmylib.so ]; then
+            echo "Error: libmylib.so was not generated. Checking directory structure:"
+            ls -R
+            exit 1
+          fi
 
       - name: Generate Tag Name
         id: tag
@@ -41,21 +44,19 @@ jobs:
           name: "Release ${{ steps.tag.outputs.TAG_NAME }}"
           fail_on_unmatched_files: true
           body: |
-            ## Automated Build Completed
+            Automated Build Completed
             
-            ### Binary File
-            - Attached: `libmylib.so` (Architecture: `arm64-v8a`)
-            - Target Package: `com.v2cross.shadowshare`
+            Binary File:
+            - Attached: libmylib.so (Architecture: arm64-v8a)
+            - Target Package: com.v2cross.shadowshare
             
-            ---
-            
-            ### Smali Call Code (Add to classes.dex):
+            Smali Call Code (Add to classes.dex):
             ```smali
             const-string v0, "mylib"
             invoke-static {v0}, Ljava/lang/System;->loadLibrary(Ljava/lang/String;)V
             ```
             
-            ### Java Call Code (Reference):
+            Java Call Code (Reference):
             ```java
             System.loadLibrary("mylib");
             ```
